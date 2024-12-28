@@ -37,6 +37,19 @@ const Index = () => {
     },
   });
 
+  const handleToggleComplete = (day: number, completed: boolean) => {
+    setWorkouts(workouts.map(workout => 
+      workout.day === day 
+        ? { ...workout, completed }
+        : workout
+    ));
+
+    toast({
+      title: completed ? "Workout completed!" : "Workout uncompleted",
+      description: `Day ${day} has been marked as ${completed ? 'completed' : 'incomplete'}.`,
+    });
+  };
+
   // Calculate progress based on completed workouts out of total workouts
   const completedWorkouts = workouts.filter(w => w.completed).length;
   const progress = (completedWorkouts / workouts.length) * 100;
@@ -150,7 +163,11 @@ const Index = () => {
             </div>
             <div className="space-y-3 max-h-[500px] overflow-y-auto">
               {workouts.map((workout) => (
-                <WorkoutCard key={workout.day} {...workout} />
+                <WorkoutCard 
+                  key={workout.day} 
+                  {...workout} 
+                  onToggleComplete={(completed) => handleToggleComplete(workout.day, completed)}
+                />
               ))}
             </div>
           </div>
