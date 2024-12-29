@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ProgressRing } from "@/components/ProgressRing";
 import { WorkoutCard } from "@/components/WorkoutCard";
@@ -11,6 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
+import { supabase } from "@/integrations/supabase/client";
 
 const workoutFormSchema = z.object({
   date: z.string().min(1, "Date is required"),
@@ -19,14 +20,7 @@ const workoutFormSchema = z.object({
 
 const Index = () => {
   const { toast } = useToast();
-  const [workouts, setWorkouts] = useState([
-    { day: 1, date: "Jan 1, 2025", completed: true, notes: "Started strong! 30min cardio + weights" },
-    { day: 2, date: "Jan 2, 2025", completed: true, notes: "Upper body focus" },
-    { day: 3, date: "Jan 3, 2025", completed: true, notes: "Lower body day" },
-    { day: 4, date: "Jan 4, 2025", completed: true, notes: "HIIT training" },
-    { day: 5, date: "Jan 5, 2025", completed: false, notes: "Rest day" },
-  ]);
-
+  const [workouts, setWorkouts] = useState<any[]>([]);
   const [isAddingWorkout, setIsAddingWorkout] = useState(false);
 
   const form = useForm({
@@ -37,53 +31,117 @@ const Index = () => {
     },
   });
 
-  const handleToggleComplete = (day: number, completed: boolean) => {
-    setWorkouts(workouts.map(workout => 
-      workout.day === day 
-        ? { ...workout, completed }
-        : workout
-    ));
+  const fetchWorkouts = async () => {
+    const { data, error } = await supabase
+      .from('workouts')
+      .select('*')
+      .order('day', { ascending: true });
+    
+    if (error) {
+      toast({
+        title: "Error fetching workouts",
+        description: error.message,
+        variant: "destructive",
+      });
+      return;
+    }
 
+    setWorkouts(data || []);
+  };
+
+  useEffect(() => {
+    fetchWorkouts();
+  }, []);
+
+  const handleToggleComplete = async (id: string, completed: boolean) => {
+    const { error } = await supabase
+      .from('workouts')
+      .update({ completed })
+      .eq('id', id);
+
+    if (error) {
+      toast({
+        title: "Error updating workout",
+        description: error.message,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    await fetchWorkouts();
     toast({
       title: completed ? "Workout completed!" : "Workout uncompleted",
-      description: `Day ${day} has been marked as ${completed ? 'completed' : 'incomplete'}.`,
+      description: `The workout has been marked as ${completed ? 'completed' : 'incomplete'}.`,
     });
   };
 
-  // Calculate progress based on completed workouts out of total workouts
-  const completedWorkouts = workouts.filter(w => w.completed).length;
-  const progress = (completedWorkouts / workouts.length) * 100;
+  const handleDelete = async (id: string) => {
+    const { error } = await supabase
+      .from('workouts')
+      .delete()
+      .eq('id', id);
 
-  const handleLogWorkout = () => {
-    const nextIncompleteWorkout = workouts.find(w => !w.completed);
-    if (nextIncompleteWorkout) {
-      setWorkouts(workouts.map(workout => 
-        workout.day === nextIncompleteWorkout.day 
-          ? { ...workout, completed: true, notes: workout.notes || "Workout completed!" }
-          : workout
-      ));
-
+    if (error) {
       toast({
-        title: "Workout logged!",
-        description: `Day ${nextIncompleteWorkout.day} completed! Keep up the great work! 💪`,
+        title: "Error deleting workout",
+        description: error.message,
+        variant: "destructive",
       });
-    } else {
-      toast({
-        title: "All caught up!",
-        description: "You've completed all available workouts.",
-      });
+      return;
     }
+
+    await fetchWorkouts();
+    toast({
+      title: "Workout deleted",
+      description: "The workout has been removed from your schedule.",
+    });
   };
 
-  const onSubmit = (data: z.infer<typeof workoutFormSchema>) => {
+  const handleUpdate = async (id: string, data: { date: string; notes?: string }) => {
+    const { error } = await supabase
+      .from('workouts')
+      .update(data)
+      .eq('id', id);
+
+    if (error) {
+      toast({
+        title: "Error updating workout",
+        description: error.message,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    await fetchWorkouts();
+    toast({
+      title: "Workout updated",
+      description: "Your changes have been saved.",
+    });
+  };
+
+  const onSubmit = async (data: z.infer<typeof workoutFormSchema>) => {
     const newWorkout = {
       day: workouts.length + 1,
       date: data.date,
       completed: false,
       notes: data.notes,
+      user_id: (await supabase.auth.getUser()).data.user?.id,
     };
 
-    setWorkouts([...workouts, newWorkout]);
+    const { error } = await supabase
+      .from('workouts')
+      .insert([newWorkout]);
+
+    if (error) {
+      toast({
+        title: "Error adding workout",
+        description: error.message,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    await fetchWorkouts();
     setIsAddingWorkout(false);
     form.reset();
 
@@ -92,6 +150,10 @@ const Index = () => {
       description: `Day ${newWorkout.day} has been added to your schedule.`,
     });
   };
+
+  // Calculate progress based on completed workouts out of total workouts
+  const completedWorkouts = workouts.filter(w => w.completed).length;
+  const progress = workouts.length > 0 ? (completedWorkouts / workouts.length) * 100 : 0;
 
   return (
     <div className="min-h-screen p-6 bg-background">
@@ -150,10 +212,6 @@ const Index = () => {
             <p className="text-lg text-muted-foreground">
               {completedWorkouts} of {workouts.length} days completed ({Math.round(progress)}%)
             </p>
-            <Button onClick={handleLogWorkout} className="w-full">
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Log Today's Workout
-            </Button>
           </div>
           
           <div className="space-y-4">
@@ -164,9 +222,15 @@ const Index = () => {
             <div className="space-y-3 max-h-[500px] overflow-y-auto">
               {workouts.map((workout) => (
                 <WorkoutCard 
-                  key={workout.day} 
-                  {...workout} 
-                  onToggleComplete={(completed) => handleToggleComplete(workout.day, completed)}
+                  key={workout.id}
+                  id={workout.id}
+                  day={workout.day}
+                  date={workout.date}
+                  completed={workout.completed}
+                  notes={workout.notes}
+                  onToggleComplete={(completed) => handleToggleComplete(workout.id, completed)}
+                  onDelete={() => handleDelete(workout.id)}
+                  onUpdate={(data) => handleUpdate(workout.id, data)}
                 />
               ))}
             </div>
