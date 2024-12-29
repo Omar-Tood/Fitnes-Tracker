@@ -12,6 +12,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { supabase } from "@/integrations/supabase/client";
+import { Auth } from "@supabase/auth-ui-react";
+import { ThemeSupa } from "@supabase/auth-ui-shared";
+import { useNavigate } from "react-router-dom";
 
 const workoutFormSchema = z.object({
   date: z.string().min(1, "Date is required"),
@@ -22,6 +25,8 @@ const Index = () => {
   const { toast } = useToast();
   const [workouts, setWorkouts] = useState<any[]>([]);
   const [isAddingWorkout, setIsAddingWorkout] = useState(false);
+  const [session, setSession] = useState<any>(null);
+  const navigate = useNavigate();
 
   const form = useForm({
     resolver: zodResolver(workoutFormSchema),
@@ -31,7 +36,24 @@ const Index = () => {
     },
   });
 
+  useEffect(() => {
+    // Set up auth state listener
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
   const fetchWorkouts = async () => {
+    if (!session?.user) return;
+
     const { data, error } = await supabase
       .from('workouts')
       .select('*')
@@ -50,10 +72,14 @@ const Index = () => {
   };
 
   useEffect(() => {
-    fetchWorkouts();
-  }, []);
+    if (session?.user) {
+      fetchWorkouts();
+    }
+  }, [session]);
 
   const handleToggleComplete = async (id: string, completed: boolean) => {
+    if (!session?.user) return;
+
     const { error } = await supabase
       .from('workouts')
       .update({ completed })
@@ -76,6 +102,8 @@ const Index = () => {
   };
 
   const handleDelete = async (id: string) => {
+    if (!session?.user) return;
+
     const { error } = await supabase
       .from('workouts')
       .delete()
@@ -98,6 +126,8 @@ const Index = () => {
   };
 
   const handleUpdate = async (id: string, data: { date: string; notes?: string }) => {
+    if (!session?.user) return;
+
     const { error } = await supabase
       .from('workouts')
       .update(data)
@@ -120,12 +150,14 @@ const Index = () => {
   };
 
   const onSubmit = async (data: z.infer<typeof workoutFormSchema>) => {
+    if (!session?.user) return;
+
     const newWorkout = {
       day: workouts.length + 1,
       date: data.date,
       completed: false,
       notes: data.notes,
-      user_id: (await supabase.auth.getUser()).data.user?.id,
+      user_id: session.user.id,
     };
 
     const { error } = await supabase
@@ -155,6 +187,24 @@ const Index = () => {
   const completedWorkouts = workouts.filter(w => w.completed).length;
   const progress = workouts.length > 0 ? (completedWorkouts / workouts.length) * 100 : 0;
 
+  if (!session) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-6">
+        <div className="w-full max-w-md space-y-8">
+          <div className="text-center">
+            <h1 className="text-4xl font-bold mb-2">Welcome to Fitness Tracker</h1>
+            <p className="text-muted-foreground mb-8">Please sign in to continue</p>
+          </div>
+          <Auth 
+            supabaseClient={supabase}
+            appearance={{ theme: ThemeSupa }}
+            theme="light"
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen p-6 bg-background">
       <main className="max-w-4xl mx-auto space-y-6">
@@ -162,48 +212,53 @@ const Index = () => {
           <h1 className="text-4xl font-bold">
             Fitness Tracker
           </h1>
-          <Dialog open={isAddingWorkout} onOpenChange={setIsAddingWorkout}>
-            <DialogTrigger asChild>
-              <Button>
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Add Workout Day
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Add New Workout Day</DialogTitle>
-              </DialogHeader>
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="date"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Date</FormLabel>
-                        <FormControl>
-                          <Input type="date" {...field} />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="notes"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Notes (optional)</FormLabel>
-                        <FormControl>
-                          <Input {...field} placeholder="Enter workout notes..." />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                  <Button type="submit" className="w-full">Add Workout</Button>
-                </form>
-              </Form>
-            </DialogContent>
-          </Dialog>
+          <div className="flex items-center gap-4">
+            <Button variant="outline" onClick={() => supabase.auth.signOut()}>
+              Sign Out
+            </Button>
+            <Dialog open={isAddingWorkout} onOpenChange={setIsAddingWorkout}>
+              <DialogTrigger asChild>
+                <Button>
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  Add Workout Day
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Add New Workout Day</DialogTitle>
+                </DialogHeader>
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                    <FormField
+                      control={form.control}
+                      name="date"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Date</FormLabel>
+                          <FormControl>
+                            <Input type="date" {...field} />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="notes"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Notes (optional)</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="Enter workout notes..." />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                    <Button type="submit" className="w-full">Add Workout</Button>
+                  </form>
+                </Form>
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
         
         <div className="grid gap-6 md:grid-cols-2">
