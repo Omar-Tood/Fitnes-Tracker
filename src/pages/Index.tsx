@@ -197,8 +197,16 @@ const Index = () => {
           </div>
           <Auth 
             supabaseClient={supabase}
-            appearance={{ theme: ThemeSupa }}
+            appearance={{ 
+              theme: ThemeSupa,
+              style: {
+                button: { background: 'black', color: 'white' },
+                anchor: { color: 'gray' },
+              },
+            }}
             theme="light"
+            providers={["github"]}
+            onlyThirdPartyProviders
           />
         </div>
       </div>
