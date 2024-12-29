@@ -1,11 +1,10 @@
 import { Auth } from "@supabase/auth-ui-react";
 import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/components/ui/use-toast";
 
 export const AuthUI = () => {
-  const handleAuthError = (error: Error) => {
-    console.error("Auth error:", error);
-  };
+  const { toast } = useToast();
 
   return (
     <div className="w-full max-w-md space-y-8">
@@ -25,7 +24,13 @@ export const AuthUI = () => {
         theme="light"
         providers={["github"]}
         onlyThirdPartyProviders
-        onError={handleAuthError}
+        localization={{
+          variables: {
+            sign_in: {
+              social_provider_text: "Continue with {{provider}}"
+            }
+          }
+        }}
       />
     </div>
   );
