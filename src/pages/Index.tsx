@@ -12,9 +12,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { supabase } from "@/integrations/supabase/client";
-import { Auth } from "@supabase/auth-ui-react";
-import { ThemeSupa } from "@supabase/auth-ui-shared";
-import { useNavigate } from "react-router-dom";
+import { AuthUI } from "@/components/AuthUI";
 
 const workoutFormSchema = z.object({
   date: z.string().min(1, "Date is required"),
@@ -26,7 +24,7 @@ const Index = () => {
   const [workouts, setWorkouts] = useState<any[]>([]);
   const [isAddingWorkout, setIsAddingWorkout] = useState(false);
   const [session, setSession] = useState<any>(null);
-  const navigate = useNavigate();
+  const [authError, setAuthError] = useState<string | null>(null);
 
   const form = useForm({
     resolver: zodResolver(workoutFormSchema),
@@ -37,14 +35,20 @@ const Index = () => {
   });
 
   useEffect(() => {
-    // Set up auth state listener
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    // Set up auth state listener with error handling
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (error) {
+        console.error("Session error:", error);
+        setAuthError(error.message);
+        return;
+      }
       setSession(session);
     });
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
+      console.log("Auth state changed:", _event, session?.user?.id);
       setSession(session);
     });
 
@@ -187,28 +191,21 @@ const Index = () => {
   const completedWorkouts = workouts.filter(w => w.completed).length;
   const progress = workouts.length > 0 ? (completedWorkouts / workouts.length) * 100 : 0;
 
+  if (authError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-6">
+        <div className="text-center text-red-500">
+          <h2>Authentication Error</h2>
+          <p>{authError}</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!session) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-6">
-        <div className="w-full max-w-md space-y-8">
-          <div className="text-center">
-            <h1 className="text-4xl font-bold mb-2">Welcome to Fitness Tracker</h1>
-            <p className="text-muted-foreground mb-8">Please sign in to continue</p>
-          </div>
-          <Auth 
-            supabaseClient={supabase}
-            appearance={{ 
-              theme: ThemeSupa,
-              style: {
-                button: { background: 'black', color: 'white' },
-                anchor: { color: 'gray' },
-              },
-            }}
-            theme="light"
-            providers={["github"]}
-            onlyThirdPartyProviders
-          />
-        </div>
+        <AuthUI />
       </div>
     );
   }
