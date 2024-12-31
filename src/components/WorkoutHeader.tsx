@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { PlusCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface WorkoutHeaderProps {
