@@ -37,13 +37,18 @@ export const AuthUI = () => {
           },
         }}
         theme="light"
-        providers={["github"]}
         redirectTo={window.location.origin}
-        onlyThirdPartyProviders
         localization={{
           variables: {
+            sign_up: {
+              email_label: 'Email',
+              password_label: 'Password',
+              button_label: 'Sign up',
+            },
             sign_in: {
-              social_provider_text: "Continue with {{provider}}"
+              email_label: 'Email',
+              password_label: 'Password',
+              button_label: 'Sign in',
             }
           }
         }}
