@@ -1,10 +1,6 @@
 import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { ProgressRing } from "@/components/ProgressRing";
-import { WorkoutCard } from "@/components/WorkoutCard";
-import { DailyQuote } from "@/components/DailyQuote";
 import { PlusCircle } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
@@ -13,6 +9,11 @@ import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { AuthUI } from "@/components/AuthUI";
+import { WorkoutCard } from "@/components/WorkoutCard";
+import { DailyQuote } from "@/components/DailyQuote";
+import { WorkoutHeader } from "@/components/WorkoutHeader";
+import { WorkoutStats } from "@/components/WorkoutStats";
+import { checkMissedWorkouts } from "@/utils/workoutNotifications";
 
 const workoutFormSchema = z.object({
   date: z.string().min(1, "Date is required"),
@@ -35,7 +36,6 @@ const Index = () => {
   });
 
   useEffect(() => {
-    // Set up auth state listener with error handling
     supabase.auth.getSession().then(({ data: { session }, error }) => {
       if (error) {
         console.error("Session error:", error);
@@ -48,7 +48,6 @@ const Index = () => {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      console.log("Auth state changed:", _event, session?.user?.id);
       setSession(session);
     });
 
@@ -73,6 +72,8 @@ const Index = () => {
     }
 
     setWorkouts(data || []);
+    // Check for missed workouts whenever workouts are fetched
+    checkMissedWorkouts(data || []);
   };
 
   useEffect(() => {
@@ -187,7 +188,6 @@ const Index = () => {
     });
   };
 
-  // Calculate progress based on completed workouts out of total workouts
   const completedWorkouts = workouts.filter(w => w.completed).length;
   const progress = workouts.length > 0 ? (completedWorkouts / workouts.length) * 100 : 0;
 
@@ -213,66 +213,14 @@ const Index = () => {
   return (
     <div className="min-h-screen p-6 bg-background">
       <main className="max-w-4xl mx-auto space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-4xl font-bold">
-            Fitness Tracker
-          </h1>
-          <div className="flex items-center gap-4">
-            <Button variant="outline" onClick={() => supabase.auth.signOut()}>
-              Sign Out
-            </Button>
-            <Dialog open={isAddingWorkout} onOpenChange={setIsAddingWorkout}>
-              <DialogTrigger asChild>
-                <Button>
-                  <PlusCircle className="mr-2 h-4 w-4" />
-                  Add Workout Day
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Add New Workout Day</DialogTitle>
-                </DialogHeader>
-                <Form {...form}>
-                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                    <FormField
-                      control={form.control}
-                      name="date"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Date</FormLabel>
-                          <FormControl>
-                            <Input type="date" {...field} />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="notes"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Notes (optional)</FormLabel>
-                          <FormControl>
-                            <Input {...field} placeholder="Enter workout notes..." />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                    <Button type="submit" className="w-full">Add Workout</Button>
-                  </form>
-                </Form>
-              </DialogContent>
-            </Dialog>
-          </div>
-        </div>
+        <WorkoutHeader onAddWorkout={() => setIsAddingWorkout(true)} />
         
         <div className="grid gap-6 md:grid-cols-2">
-          <div className="flex flex-col items-center space-y-4">
-            <ProgressRing progress={progress} />
-            <p className="text-lg text-muted-foreground">
-              {completedWorkouts} of {workouts.length} days completed ({Math.round(progress)}%)
-            </p>
-          </div>
+          <WorkoutStats 
+            completedWorkouts={completedWorkouts}
+            totalWorkouts={workouts.length}
+            progress={progress}
+          />
           
           <div className="space-y-4">
             <DailyQuote />
@@ -296,6 +244,43 @@ const Index = () => {
             </div>
           </div>
         </div>
+
+        <Dialog open={isAddingWorkout} onOpenChange={setIsAddingWorkout}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Add New Workout Day</DialogTitle>
+            </DialogHeader>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="date"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Date</FormLabel>
+                      <FormControl>
+                        <Input type="date" {...field} />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="notes"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Notes (optional)</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="Enter workout notes..." />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                <Button type="submit" className="w-full">Add Workout</Button>
+              </form>
+            </Form>
+          </DialogContent>
+        </Dialog>
       </main>
     </div>
   );
