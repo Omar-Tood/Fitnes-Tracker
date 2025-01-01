@@ -139,9 +139,15 @@ const Index = () => {
   const handleUpdate = async (id: string, data: { date: string; notes?: string }) => {
     if (!session?.user) return;
 
+    const updateData = {
+      date: data.date,
+      notes: data.notes || null,
+      scheduled_time: data.scheduledTime || null, // Changed this line to handle empty string
+    };
+
     const { error } = await supabase
       .from('workouts')
-      .update(data)
+      .update(updateData)
       .eq('id', id);
 
     if (error) {
@@ -167,8 +173,8 @@ const Index = () => {
       day: workouts.length + 1,
       date: data.date,
       completed: false,
-      notes: data.notes,
-      scheduled_time: data.scheduledTime,
+      notes: data.notes || null,
+      scheduled_time: data.scheduledTime || null, // Changed this line to handle empty string
       user_id: session.user.id,
     };
 

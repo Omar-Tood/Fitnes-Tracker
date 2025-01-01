@@ -36,7 +36,11 @@ export function WorkoutCard({
   const [editTime, setEditTime] = useState(scheduledTime || "");
 
   const handleSave = () => {
-    onUpdate({ date: editDate, notes: editNotes, scheduledTime: editTime });
+    onUpdate({ 
+      date: editDate, 
+      notes: editNotes || null,
+      scheduledTime: editTime || null // Changed this line to handle empty string
+    });
     setIsEditing(false);
   };
 
