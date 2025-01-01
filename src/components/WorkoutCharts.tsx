@@ -12,12 +12,26 @@ import {
   YAxis,
   Line,
   LineChart,
+  Tooltip,
+  TooltipProps,
 } from "recharts";
 import { format } from "date-fns";
 
 interface WorkoutChartsProps {
   workouts: any[];
 }
+
+type ChartData = {
+  month: string;
+  completed: number;
+  total: number;
+  completionRate: number;
+};
+
+type DailyData = {
+  date: string;
+  completed: number;
+};
 
 export function WorkoutCharts({ workouts }: WorkoutChartsProps) {
   const monthlyData = useMemo(() => {
@@ -84,9 +98,21 @@ export function WorkoutCharts({ workouts }: WorkoutChartsProps) {
                 fill="currentColor"
                 radius={[4, 4, 0, 0]}
               />
-              <ChartTooltip>
-                <ChartTooltipContent />
-              </ChartTooltip>
+              <Tooltip
+                content={({ active, payload, label }) => {
+                  if (active && payload && payload.length) {
+                    return (
+                      <div className="rounded-lg border bg-background p-2 shadow-sm">
+                        <p className="font-medium">{label}</p>
+                        <p className="text-muted-foreground">
+                          Completion Rate: {payload[0].value}%
+                        </p>
+                      </div>
+                    );
+                  }
+                  return null;
+                }}
+              />
             </BarChart>
           </ChartContainer>
         </div>
@@ -115,9 +141,21 @@ export function WorkoutCharts({ workouts }: WorkoutChartsProps) {
                 strokeWidth={2}
                 dot={{ strokeWidth: 2, r: 4 }}
               />
-              <ChartTooltip>
-                <ChartTooltipContent />
-              </ChartTooltip>
+              <Tooltip
+                content={({ active, payload, label }) => {
+                  if (active && payload && payload.length) {
+                    return (
+                      <div className="rounded-lg border bg-background p-2 shadow-sm">
+                        <p className="font-medium">{label}</p>
+                        <p className="text-muted-foreground">
+                          Status: {payload[0].value === 1 ? 'Completed' : 'Not Completed'}
+                        </p>
+                      </div>
+                    );
+                  }
+                  return null;
+                }}
+              />
             </LineChart>
           </ChartContainer>
         </div>
