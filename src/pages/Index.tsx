@@ -22,6 +22,8 @@ const workoutFormSchema = z.object({
   scheduledTime: z.string().optional(),
 });
 
+type WorkoutFormValues = z.infer<typeof workoutFormSchema>;
+
 const Index = () => {
   const { toast } = useToast();
   const [workouts, setWorkouts] = useState<any[]>([]);
@@ -29,11 +31,12 @@ const Index = () => {
   const [session, setSession] = useState<any>(null);
   const [authError, setAuthError] = useState<string | null>(null);
 
-  const form = useForm({
+  const form = useForm<WorkoutFormValues>({
     resolver: zodResolver(workoutFormSchema),
     defaultValues: {
       date: "",
       notes: "",
+      scheduledTime: "",
     },
   });
 

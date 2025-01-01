@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CheckCircle2, Pencil, Trash2, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Timer } from "./Timer";
 
 interface WorkoutCardProps {
   id: string;
@@ -96,7 +97,7 @@ export function WorkoutCard({
           </Button>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-4">
         <div className="text-xs text-muted-foreground space-y-1">
           <div className="flex items-center gap-1">
             <span>{date}</span>
@@ -109,6 +110,7 @@ export function WorkoutCard({
           )}
         </div>
         {notes && <p className="mt-2 text-sm">{notes}</p>}
+        <Timer />
       </CardContent>
     </Card>
   );
