@@ -70,6 +70,7 @@ export type Database = {
           day: number
           id: string
           notes: string | null
+          scheduled_time: string | null
           updated_at: string | null
           user_id: string
         }
@@ -80,6 +81,7 @@ export type Database = {
           day: number
           id?: string
           notes?: string | null
+          scheduled_time?: string | null
           updated_at?: string | null
           user_id: string
         }
@@ -90,6 +92,7 @@ export type Database = {
           day?: number
           id?: string
           notes?: string | null
+          scheduled_time?: string | null
           updated_at?: string | null
           user_id?: string
         }

@@ -19,6 +19,7 @@ import { checkMissedWorkouts } from "@/utils/workoutNotifications";
 const workoutFormSchema = z.object({
   date: z.string().min(1, "Date is required"),
   notes: z.string().optional(),
+  scheduledTime: z.string().optional(),
 });
 
 const Index = () => {
@@ -163,6 +164,7 @@ const Index = () => {
       date: data.date,
       completed: false,
       notes: data.notes,
+      scheduled_time: data.scheduledTime,
       user_id: session.user.id,
     };
 
@@ -237,6 +239,7 @@ const Index = () => {
                   date={workout.date}
                   completed={workout.completed}
                   notes={workout.notes}
+                  scheduledTime={workout.scheduled_time}
                   onToggleComplete={(completed) => handleToggleComplete(workout.id, completed)}
                   onDelete={() => handleDelete(workout.id)}
                   onUpdate={(data) => handleUpdate(workout.id, data)}
@@ -261,6 +264,18 @@ const Index = () => {
                       <FormLabel>Date</FormLabel>
                       <FormControl>
                         <Input type="date" {...field} />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="scheduledTime"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Time (optional)</FormLabel>
+                      <FormControl>
+                        <Input type="time" {...field} />
                       </FormControl>
                     </FormItem>
                   )}

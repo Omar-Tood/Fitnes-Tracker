@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { CheckCircle2, Pencil, Trash2 } from "lucide-react";
+import { CheckCircle2, Pencil, Trash2, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface WorkoutCardProps {
@@ -12,9 +12,10 @@ interface WorkoutCardProps {
   date: string;
   completed: boolean;
   notes?: string;
+  scheduledTime?: string;
   onToggleComplete: (completed: boolean) => void;
   onDelete: () => void;
-  onUpdate: (data: { date: string; notes?: string }) => void;
+  onUpdate: (data: { date: string; notes?: string; scheduledTime?: string }) => void;
 }
 
 export function WorkoutCard({ 
@@ -22,7 +23,8 @@ export function WorkoutCard({
   day, 
   date, 
   completed, 
-  notes, 
+  notes,
+  scheduledTime, 
   onToggleComplete,
   onDelete,
   onUpdate 
@@ -30,9 +32,10 @@ export function WorkoutCard({
   const [isEditing, setIsEditing] = useState(false);
   const [editDate, setEditDate] = useState(date);
   const [editNotes, setEditNotes] = useState(notes || "");
+  const [editTime, setEditTime] = useState(scheduledTime || "");
 
   const handleSave = () => {
-    onUpdate({ date: editDate, notes: editNotes });
+    onUpdate({ date: editDate, notes: editNotes, scheduledTime: editTime });
     setIsEditing(false);
   };
 
@@ -47,6 +50,11 @@ export function WorkoutCard({
             type="date"
             value={editDate}
             onChange={(e) => setEditDate(e.target.value)}
+          />
+          <Input
+            type="time"
+            value={editTime}
+            onChange={(e) => setEditTime(e.target.value)}
           />
           <Input
             value={editNotes}
@@ -89,7 +97,17 @@ export function WorkoutCard({
         </div>
       </CardHeader>
       <CardContent>
-        <div className="text-xs text-muted-foreground">{date}</div>
+        <div className="text-xs text-muted-foreground space-y-1">
+          <div className="flex items-center gap-1">
+            <span>{date}</span>
+          </div>
+          {scheduledTime && (
+            <div className="flex items-center gap-1">
+              <Clock className="h-3 w-3" />
+              <span>{scheduledTime}</span>
+            </div>
+          )}
+        </div>
         {notes && <p className="mt-2 text-sm">{notes}</p>}
       </CardContent>
     </Card>
