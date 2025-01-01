@@ -14,6 +14,7 @@ import { WorkoutCard } from "@/components/WorkoutCard";
 import { DailyQuote } from "@/components/DailyQuote";
 import { WorkoutHeader } from "@/components/WorkoutHeader";
 import { WorkoutStats } from "@/components/WorkoutStats";
+import { WorkoutCharts } from "@/components/WorkoutCharts";
 import { checkMissedWorkouts } from "@/utils/workoutNotifications";
 
 const workoutFormSchema = z.object({
@@ -251,6 +252,8 @@ const Index = () => {
             </div>
           </div>
         </div>
+
+        <WorkoutCharts workouts={workouts} />
 
         <Dialog open={isAddingWorkout} onOpenChange={setIsAddingWorkout}>
           <DialogContent>
